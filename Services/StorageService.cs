@@ -1,32 +1,39 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace AirportTicketBookingSystem.Services;
 
 public class StorageService<T>
 {
+    private readonly JsonSerializerOptions _options = new()
+    {
+        WriteIndented = true,
+        Converters = {new JsonStringEnumConverter()}
+    };
+
     public List<T> Load(string filePath)
     {
         if (!File.Exists(filePath))
             return new List<T>();
 
-        string json=File.ReadAllText(filePath);
+        string json = File.ReadAllText(filePath);
 
         if (string.IsNullOrWhiteSpace(json))
             return new List<T>();
 
-        return JsonSerializer.Deserialize<List<T>>(json, _options) ?? throw new JsonException("Expected a JSON array, but found null.");
+        return JsonSerializer.Deserialize<List<T>>(json,_options) ?? throw new JsonException("Expected a JSON array, but found null.");
     }
 
-    public void Save(string filePath, List<T> data)
+    public void Save(string filePath,List<T> data)
     {
         ArgumentNullException.ThrowIfNull(data);
 
-        string json=JsonSerializer.Serialize(data, _options);
-        string? directory=Path.GetDirectoryName(filePath);
+        string json = JsonSerializer.Serialize(data, _options);
+        string? directory = Path.GetDirectoryName(filePath);
 
         if (!string.IsNullOrEmpty(directory))
             Directory.CreateDirectory(directory);
 
-        File.WriteAllText(filePath, json);
+        File.WriteAllText(filePath,json);
     }
 }
