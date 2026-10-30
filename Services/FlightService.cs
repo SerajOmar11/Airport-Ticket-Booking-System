@@ -11,7 +11,8 @@ public class FlightService
     private readonly string _flightPath;
     private readonly string _bookingPath;
 
-    public FlightService(StorageService<Flight> flightStorage, StorageService<Booking> bookingStorage, string flightPath, string bookingPath)
+    public FlightService(StorageService<Flight> flightStorage, StorageService<Booking> bookingStorage,
+                        string flightPath, string bookingPath)
     {
         _flightStorage = flightStorage??throw new ArgumentNullException(nameof(flightStorage));
         _bookingStorage = bookingStorage??throw new ArgumentNullException(nameof(bookingStorage));
@@ -55,19 +56,23 @@ public class FlightService
         query = query.Where(f => f.DepartureDate > DateTime.UtcNow);
 
         if (!string.IsNullOrWhiteSpace(criteria.DepartureCountry)) {
-            query=query.Where(f=>f.DepartureCountry.Equals(criteria.DepartureCountry,StringComparison.OrdinalIgnoreCase));
+            query=query.Where(f=>f.DepartureCountry
+                        .Equals(criteria.DepartureCountry,StringComparison.OrdinalIgnoreCase));
         }
         
         if (!string.IsNullOrWhiteSpace(criteria.DestinationCountry)) {
-            query=query.Where(f=>f.DestinationCountry.Equals(criteria.DestinationCountry,StringComparison.OrdinalIgnoreCase));
+            query=query.Where(f=>f.DestinationCountry
+                .Equals(criteria.DestinationCountry,StringComparison.OrdinalIgnoreCase));
         }
         
         if (!string.IsNullOrWhiteSpace(criteria.DepartureAirport)) {
-            query=query.Where(f=>f.DepartureAirport.Equals(criteria.DepartureAirport,StringComparison.OrdinalIgnoreCase));
+            query=query.Where(f=>f.DepartureAirport
+                .Equals(criteria.DepartureAirport,StringComparison.OrdinalIgnoreCase));
         }
         
         if (!string.IsNullOrWhiteSpace(criteria.ArrivalAirport)) {
-            query=query.Where(f=>f.ArrivalAirport.Equals(criteria.ArrivalAirport,StringComparison.OrdinalIgnoreCase));
+            query=query.Where(f=>f.ArrivalAirport
+                .Equals(criteria.ArrivalAirport,StringComparison.OrdinalIgnoreCase));
         }
 
         if (criteria.DepartureDate.HasValue) {
