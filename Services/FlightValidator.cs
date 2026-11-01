@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.Reflection;
 using AirportTicketBookingSystem.Modules;
 using AirportTicketBookingSystem.Modules.Filtering_and_Validation_Modules;
 
@@ -67,5 +68,40 @@ public class FlightValidator
         }
         
         return errors;
+    }
+
+    public List<ValidationRuleInfo> GetValidationRules()
+    {
+        List<ValidationRuleInfo> rulesInfos = new();
+        PropertyInfo[] propertyInfos = typeof(Flight).GetProperties();
+
+        foreach (var property in propertyInfos)
+        {
+            ValidationRuleInfo ruleInfo = new()
+            {
+                FieldName = property.Name,
+                DataType = property.PropertyType.Name,
+            };
+
+            var attributes = property.GetCustomAttributes<ValidationAttribute>();
+
+            foreach (var attribute in attributes)
+            {
+                switch (attribute)
+                {
+                    case RequiredAttribute:
+                        ruleInfo.Constraints.Add("Required");
+                        break;
+                    case RangeAttribute range:
+                        ruleInfo.Constraints.Add($"Range: {range.Minimum}-{range.Maximum}");
+                        break;
+                    default:
+                        ruleInfo.Constraints.Add(attribute.GetType().Name.Replace("Attribute", ""));
+                        break;
+                }
+            }
+            rulesInfos.Add(ruleInfo);
+        }
+        return rulesInfos;
     }
 }
