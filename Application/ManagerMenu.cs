@@ -10,15 +10,19 @@ public class ManagerMenu
     private readonly FlightImportService _importService;
     private readonly BookingService _bookingService;
     private readonly FlightValidator _validator;
-
+    private readonly string _csvPath;
     public ManagerMenu(
         FlightImportService importService,
         BookingService bookingService,
-        FlightValidator validator)
+        FlightValidator validator,
+        string csvPath)
     {
         _importService = importService;
         _bookingService = bookingService;
         _validator = validator;
+        _csvPath = !string.IsNullOrWhiteSpace(csvPath)
+            ? csvPath
+            : throw new ArgumentException("Invalid CSV path.", nameof(csvPath));
     }
 
     public void Show()
@@ -63,23 +67,24 @@ public class ManagerMenu
 
     private void ImportFlights()
     {
-        string csvPath = ConsoleHelper.ReadRequired("CSV file path: ");
-
-        ImportResult result = _importService.ImportFlights(csvPath);
+        ImportResult result = _importService.ImportFlights(_csvPath);
 
         if (!result.IsSuccessful)
         {
-            Console.WriteLine("\nImport failed:");
+            Console.WriteLine("Import failed:");
 
-            foreach (ValidationError error in result.Errors)
+            foreach (var error in result.Errors)
             {
-                Console.WriteLine($"Row {error.RowNumber} | " + $"{error.FieldName}: {error.ErrorMessage}");
+                Console.WriteLine(
+                    $"Row {error.RowNumber} | " +
+                    $"{error.FieldName}: {error.ErrorMessage}");
             }
 
             return;
         }
 
-        Console.WriteLine($"Successfully imported {result.Flights.Count} flights.");
+        Console.WriteLine(
+            $"Successfully imported {result.Flights.Count} flights.");
     }
 
     private void FilterBookings()
