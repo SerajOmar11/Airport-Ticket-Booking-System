@@ -258,6 +258,7 @@ public class PassengerMenu
                               $"{flight.DepartureCountry} - {flight.DepartureAirport}  - {flight.DepartureDate}");
             Console.WriteLine($"Destination : " +
                               $"{flight.DestinationCountry} - {flight.ArrivalAirport} - {flight.ArrivalDate}");
+            Console.WriteLine($"Available Seats: {_flightService.GetAvailableSeats(flight.Id)}");
             Console.WriteLine();
         }
         
