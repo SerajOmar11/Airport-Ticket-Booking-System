@@ -1,8 +1,10 @@
 ﻿using AirportTicketBookingSystem.Application;
-using AirportTicketBookingSystem.Modules;
+using AirportTicketBookingSystem.Modules.Models;
 using AirportTicketBookingSystem.Services;
+using AirportTicketBookingSystem.Services.BookingServices;
+using AirportTicketBookingSystem.Services.FlightServices;
 
-string dataDirectory = Path.Combine(AppContext.BaseDirectory, "Data");
+string dataDirectory = Path.Combine(AppContext.BaseDirectory,"Data");
 
 string csvPath = Path.Combine(dataDirectory, "flights.csv");
 

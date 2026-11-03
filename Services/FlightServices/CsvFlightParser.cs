@@ -1,9 +1,8 @@
-
 using System.Globalization;
 using System.Text;
-using AirportTicketBookingSystem.Modules;
+using AirportTicketBookingSystem.Modules.Models;
 
-namespace AirportTicketBookingSystem.Services;
+namespace AirportTicketBookingSystem.Services.FlightServices;
 
 public class CsvFlightParser
 {
@@ -185,11 +184,11 @@ public class CsvFlightParser
 
         return new Flight
         {
-            FlightNumber = Get("FlightNumber"),
-            DepartureCountry = Get("DepartureCountry"),
-            DestinationCountry = Get("DestinationCountry"),
-            DepartureAirport = Get("DepartureAirport"),
-            ArrivalAirport = Get("ArrivalAirport"),
+            FlightNumber = Get("FlightNumber").Trim(),
+            DepartureCountry = Get("DepartureCountry").Trim(),
+            DestinationCountry = Get("DestinationCountry").Trim(),
+            DepartureAirport = Get("DepartureAirport").Trim(),
+            ArrivalAirport = Get("ArrivalAirport").Trim(),
 
             DepartureDate = ParseDate(Get("DepartureDate")),
             ArrivalDate = ParseDate(Get("ArrivalDate")),

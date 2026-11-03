@@ -1,7 +1,6 @@
-using AirportTicketBookingSystem.Modules;
-using AirportTicketBookingSystem.Modules.Filtering_and_Validation_Modules;
-
-namespace AirportTicketBookingSystem.Services;
+using AirportTicketBookingSystem.Modules.Validation;
+using AirportTicketBookingSystem.Modules.Models;
+namespace AirportTicketBookingSystem.Services.FlightServices;
 
 public class FlightImportService
 {
@@ -26,6 +25,9 @@ public class FlightImportService
 
     public ImportResult ImportFlights(string filePath)
     {
+        if (string.IsNullOrWhiteSpace(filePath))
+            throw new ArgumentException("File path cannot be empty.", nameof(filePath));
+        
         ImportResult result = new();
 
         List<Flight> importedFlights = new();
@@ -34,7 +36,17 @@ public class FlightImportService
         {
             importedFlights = _parser.Parse(filePath);
         }
-        catch (Exception ex)
+        catch (FormatException ex)
+        {
+            result.Errors.Add(new ValidationError
+            {
+                RowNumber = 0,
+                FieldName = "CSV",
+                ErrorMessage = ex.Message
+            });
+            return result;
+        }
+        catch (IOException ex)
         {
             result.Errors.Add(new ValidationError
             {

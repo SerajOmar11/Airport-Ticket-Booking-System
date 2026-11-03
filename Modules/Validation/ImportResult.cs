@@ -1,4 +1,6 @@
-namespace AirportTicketBookingSystem.Modules.Filtering_and_Validation_Modules;
+using AirportTicketBookingSystem.Modules.Models;
+
+namespace AirportTicketBookingSystem.Modules.Validation;
 
 public class ImportResult
 {

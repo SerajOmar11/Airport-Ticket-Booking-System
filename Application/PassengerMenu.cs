@@ -1,8 +1,10 @@
-
 using System.ComponentModel.DataAnnotations;
-using AirportTicketBookingSystem.Modules;
-using AirportTicketBookingSystem.Modules.Filtering_and_Validation_Modules;
+using AirportTicketBookingSystem.Modules.Enums;
+using AirportTicketBookingSystem.Modules.Filtering;
+using AirportTicketBookingSystem.Modules.Models;
 using AirportTicketBookingSystem.Services;
+using AirportTicketBookingSystem.Services.BookingServices;
+using AirportTicketBookingSystem.Services.FlightServices;
 
 namespace AirportTicketBookingSystem.Application;
 
@@ -21,10 +23,18 @@ public class PassengerMenu
         StorageService<Passenger> passengerStorage,
         string passengerPath)
     {
-        _bookingService = bookingService;
-        _flightService = flightService;
-        _passengerStorage = passengerStorage;
-        _passengerPath = passengerPath;
+        _bookingService = bookingService
+            ?? throw new ArgumentNullException(nameof(bookingService));
+
+        _flightService = flightService
+            ?? throw new ArgumentNullException(nameof(flightService));
+
+        _passengerStorage = passengerStorage
+            ?? throw new ArgumentNullException(nameof(passengerStorage));
+
+        _passengerPath = !string.IsNullOrWhiteSpace(passengerPath)
+            ? passengerPath
+            : throw new ArgumentException("Passenger path cannot be empty.",nameof(passengerPath));
     }
 
     public void Show()
@@ -34,9 +44,11 @@ public class PassengerMenu
         while (true)
         {
             Console.Clear();
+
             Console.WriteLine("===== PASSENGER MENU =====");
-            Console.WriteLine($"Passenger: {_currentPassengerId?.ToString() ?? "None"}");
+            Console.WriteLine($"Passenger: {GetCurrentPassengerDisplayName()}");
             Console.WriteLine();
+
             Console.WriteLine("1. Register Passenger");
             Console.WriteLine("2. Select Existing Passenger");
             Console.WriteLine("3. Search Available Flights");
@@ -45,6 +57,7 @@ public class PassengerMenu
             Console.WriteLine("6. Modify Booking");
             Console.WriteLine("7. Cancel Booking");
             Console.WriteLine("0. Back");
+            Console.WriteLine();
 
             int choice = ConsoleHelper.ReadInt("Choose: ", 0, 7);
 
@@ -55,26 +68,26 @@ public class PassengerMenu
             {
                 switch (choice)
                 {
-                    case 1: 
-                        RegisterPassenger(); 
+                    case 1:
+                        RegisterPassenger();
                         break;
-                    case 2: 
-                        SelectPassenger(); 
+                    case 2:
+                        SelectPassenger();
                         break;
-                    case 3: 
-                        SearchFlights(); 
+                    case 3:
+                        SearchFlights();
                         break;
-                    case 4: 
-                        BookFlight(); 
+                    case 4:
+                        BookFlight();
                         break;
-                    case 5: 
-                        ViewBookings(); 
+                    case 5:
+                        ViewBookings();
                         break;
-                    case 6: 
-                        ModifyBooking(); 
+                    case 6:
+                        ModifyBooking();
                         break;
-                    case 7: 
-                        CancelBooking(); 
+                    case 7:
+                        CancelBooking();
                         break;
                 }
             }
@@ -85,6 +98,21 @@ public class PassengerMenu
 
             ConsoleHelper.Pause();
         }
+    }
+
+    private string GetCurrentPassengerDisplayName()
+    {
+        if (!_currentPassengerId.HasValue)
+            return "None";
+
+        Passenger? passenger = _passengerStorage
+            .Load(_passengerPath)
+            .FirstOrDefault(p => p.Id == _currentPassengerId.Value);
+
+        if (passenger == null)
+            return "None";
+
+        return $"{passenger.FirstName} {passenger.LastName}";
     }
 
     private Guid RequirePassenger()
@@ -99,56 +127,71 @@ public class PassengerMenu
     {
         Passenger passenger = new()
         {
-            FullName = ConsoleHelper.ReadRequired("Full name: "),
+            FirstName = ConsoleHelper.ReadRequired("First name: "),
+            LastName = ConsoleHelper.ReadRequired("Last name: "),
             Email = ConsoleHelper.ReadRequired("Email: "),
             PassportNumber = ConsoleHelper.ReadRequired("Passport number: ")
         };
 
-        var results = new List<ValidationResult>();
+        List<ValidationResult> results = new();
 
-        if (!Validator.TryValidateObject(passenger, new ValidationContext(passenger),
-                results, true))
+        if (!Validator.TryValidateObject(passenger, new ValidationContext(passenger), results, true))
         {
-            foreach (var error in results)
+            foreach (ValidationResult error in results)
+            {
                 Console.WriteLine(error.ErrorMessage);
+            }
 
             return;
         }
 
-        var passengers = _passengerStorage.Load(_passengerPath);
+        List<Passenger> passengers = _passengerStorage.Load(_passengerPath);
 
-        if (passengers.Any(p =>
-                string.Equals(p.Email, passenger.Email,
-                    StringComparison.OrdinalIgnoreCase)))
+        if (passengers.Any(p => 
+                string.Equals(p.Email, passenger.Email, StringComparison.OrdinalIgnoreCase)))
         {
             Console.WriteLine("This email is already registered.");
             return;
         }
 
+        if (passengers.Any(p =>
+                string.Equals(p.PassportNumber, passenger.PassportNumber, StringComparison.OrdinalIgnoreCase)))
+        {
+            Console.WriteLine("This passport is already registered.");
+            return;
+        }
         passengers.Add(passenger);
         _passengerStorage.Save(_passengerPath, passengers);
-
         _currentPassengerId = passenger.Id;
-
-        Console.WriteLine("Passenger registered successfully.");
-        Console.WriteLine($"Your ID: {passenger.Id}");
+        
+        ConsoleHelper.ShowSuccess("Passenger registered successfully.");
     }
 
     private void SelectPassenger()
     {
-        Guid id = ConsoleHelper.ReadGuid("Passenger ID: ");
+        List<Passenger> passengers = _passengerStorage.Load(_passengerPath);
 
-        bool exists = _passengerStorage.Load(_passengerPath)
-            .Any(p => p.Id == id);
-
-        if (!exists)
+        if (passengers.Count == 0)
         {
-            Console.WriteLine("Passenger not found.");
+            Console.WriteLine("No passengers found.");
             return;
         }
 
-        _currentPassengerId = id;
-        Console.WriteLine("Passenger selected.");
+        Console.WriteLine();
+
+        for (int i = 0; i < passengers.Count; i++)
+        {
+            Passenger passenger = passengers[i];
+            Console.WriteLine($"{i + 1}. {passenger.FirstName} {passenger.LastName}");
+        }
+
+        int choice = ConsoleHelper.ReadInt("Choose passenger: ", 1, passengers.Count);
+
+        Passenger selectedPassenger = passengers[choice - 1];
+
+        _currentPassengerId = selectedPassenger.Id;
+
+        ConsoleHelper.ShowSuccess($"Selected: {selectedPassenger.FirstName} {selectedPassenger.LastName}");
     }
 
     private void SearchFlights()
@@ -159,21 +202,27 @@ public class PassengerMenu
             DestinationCountry = ConsoleHelper.ReadOptional("Destination country: "),
             DepartureAirport = ConsoleHelper.ReadOptional("Departure airport: "),
             ArrivalAirport = ConsoleHelper.ReadOptional("Arrival airport: "),
-            DepartureDate = ConsoleHelper.ReadOptionalDate(
-                "Departure date (yyyy-MM-dd, Enter to skip): "),
-            Class = ConsoleHelper.ReadFlightClass(optional: true),
-            MaxPrice = ConsoleHelper.ReadOptionalDecimal(
-                "Maximum price (Enter to skip): ")
+            DepartureDate = ConsoleHelper.ReadOptionalDate("Departure date (yyyy-MM-dd): "),
+            Class = ConsoleHelper.ReadFlightClass(true),
+            MaxPrice = ConsoleHelper.ReadOptionalDecimal("Maximum price: ")
         };
 
         List<Flight> flights = _flightService.SearchFlights(criteria);
 
-        Console.WriteLine($"\nFound {flights.Count} flights.");
+        if (flights.Count == 0)
+        {
+            Console.WriteLine("No flights found.");
+            return;
+        }
+
+        Console.WriteLine();
+        Console.WriteLine($"Found {flights.Count} flight(s).");
 
         foreach (Flight flight in flights)
         {
             decimal price = _flightService.CalculateTotalPrice(
-                flight, criteria.Class ?? FlightClass.Economy);
+                flight,
+                criteria.Class ?? FlightClass.Economy);
 
             Console.WriteLine("--------------------------------");
             Console.WriteLine($"ID: {flight.Id}");
@@ -182,35 +231,63 @@ public class PassengerMenu
             Console.WriteLine($"{flight.DepartureAirport} -> {flight.ArrivalAirport}");
             Console.WriteLine($"Departure (UTC): {flight.DepartureDate:u}");
             Console.WriteLine($"Price: {price}");
-            Console.WriteLine($"Available seats: {_flightService.GetAvailableSeats(flight.Id)}");
+            Console.WriteLine($"Available Seats: {_flightService.GetAvailableSeats(flight.Id)}");
         }
     }
 
     private void BookFlight()
     {
         Guid passengerId = RequirePassenger();
+        
 
-        Guid flightId = ConsoleHelper.ReadGuid("Flight ID: ");
+        var flights=_flightService.GetAllFlights();
+        if (flights.Count == 0)
+        {
+            Console.WriteLine("No flights found.");
+            return;
+        }
+        Console.WriteLine();
+        
+        Console.WriteLine($"Found {flights.Count} flight(s).");
+
+        int index = 1;
+        foreach (var flight in flights)
+        {
+            Console.WriteLine($"{index++} - {flight.FlightNumber}");
+            Console.WriteLine($"Departure : " +
+                              $"{flight.DepartureCountry} - {flight.DepartureAirport}  - {flight.DepartureDate}");
+            Console.WriteLine($"Destination : " +
+                              $"{flight.DestinationCountry} - {flight.ArrivalAirport} - {flight.ArrivalDate}");
+            Console.WriteLine();
+        }
+        
+        int flightId = ConsoleHelper.ReadInt("Flight ID: ",1,index-1);
         FlightClass flightClass = ConsoleHelper.ReadFlightClass()!.Value;
+        
+        if (!ConsoleHelper.Confirm("Confirm booking?"))
+            return;
+        
+        var chosenFlight=flights[flightId-1];
+        Booking booking = _bookingService.BookFlight(chosenFlight.Id, passengerId, flightClass);
 
-        Booking booking = _bookingService.BookFlight(flightId, passengerId, flightClass);
-
-        Console.WriteLine("Booking created successfully.");
+        ConsoleHelper.ShowSuccess("Booking created successfully.");
         Console.WriteLine($"Booking ID: {booking.Id}");
-        Console.WriteLine($"Total price: {booking.TotalPrice}");
+        Console.WriteLine($"Total Price: {booking.TotalPrice}");
     }
 
     private void ViewBookings()
     {
         Guid passengerId = RequirePassenger();
 
-        var bookings = _bookingService.GetPassengerBookings(passengerId);
+        List<Booking> bookings = _bookingService.GetPassengerBookings(passengerId);
 
         if (bookings.Count == 0)
         {
             Console.WriteLine("No bookings found.");
             return;
         }
+
+        Console.WriteLine($"Found {bookings.Count} booking(s).");
 
         foreach (Booking booking in bookings)
         {
@@ -220,13 +297,14 @@ public class PassengerMenu
             Console.WriteLine($"Class: {booking.Class}");
             Console.WriteLine($"Price: {booking.TotalPrice}");
             Console.WriteLine($"Status: {booking.Status}");
-            Console.WriteLine($"Booked at (UTC): {booking.BookingDate:u}");
+            Console.WriteLine($"Booked At (UTC): {booking.BookingDate:u}");
         }
     }
 
     private void ModifyBooking()
     {
         Guid passengerId = RequirePassenger();
+
         Guid bookingId = ConsoleHelper.ReadGuid("Booking ID: ");
 
         Console.WriteLine("1. Change flight");
@@ -244,18 +322,31 @@ public class PassengerMenu
         if (choice is 2 or 3)
             newClass = ConsoleHelper.ReadFlightClass();
 
+        if (!ConsoleHelper.Confirm("Apply these changes?"))
+            return;
+
         bool modified = _bookingService.ModifyBooking(bookingId, passengerId, newFlightId, newClass);
 
-        Console.WriteLine(modified ? "Booking modified successfully." : "No changes were made.");
+        if (modified)
+            ConsoleHelper.ShowSuccess("Booking modified successfully.");
+        else
+            Console.WriteLine("No changes were made.");
     }
 
     private void CancelBooking()
     {
         Guid passengerId = RequirePassenger();
+
         Guid bookingId = ConsoleHelper.ReadGuid("Booking ID: ");
+
+        if (!ConsoleHelper.Confirm("Are you sure you want to cancel this booking?"))
+            return;
 
         bool cancelled = _bookingService.CancelBooking(bookingId, passengerId);
 
-        Console.WriteLine(cancelled ? "Booking cancelled successfully." : "Booking is already cancelled.");
+        if (cancelled)
+            ConsoleHelper.ShowSuccess("Booking cancelled successfully.");
+        else
+            Console.WriteLine("Booking is already cancelled.");
     }
 }
