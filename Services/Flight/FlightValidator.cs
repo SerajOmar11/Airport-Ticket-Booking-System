@@ -1,7 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using System.Reflection;
-using AirportTicketBookingSystem.Modules;
-using AirportTicketBookingSystem.Modules.Filtering_and_Validation_Modules;
+using AirportTicketBookingSystem.Modules.Models;
+using AirportTicketBookingSystem.Modules.Validation;
 
 namespace AirportTicketBookingSystem.Services;
 
@@ -54,8 +54,9 @@ public class FlightValidator
             });
         }
 
-        if (string.Equals(flight.DepartureAirport.Trim(),
-                flight.ArrivalAirport.Trim(),
+        if (string.Equals(
+                flight.DepartureAirport?.Trim(),
+                flight.ArrivalAirport?.Trim(),
                 StringComparison.OrdinalIgnoreCase)
             )
         {
@@ -67,6 +68,18 @@ public class FlightValidator
             });
         }
         
+        if (string.Equals(
+                flight.DepartureCountry?.Trim(),
+                flight.DestinationCountry?.Trim(),
+                StringComparison.OrdinalIgnoreCase))
+        {
+            errors.Add(new ValidationError
+            {
+                RowNumber = rowNum,
+                FieldName = nameof(flight.DestinationCountry),
+                ErrorMessage = "Destination country must differ from departure country."
+            });
+        }
         return errors;
     }
 
@@ -95,11 +108,26 @@ public class FlightValidator
                     case RangeAttribute range:
                         ruleInfo.Constraints.Add($"Range: {range.Minimum}-{range.Maximum}");
                         break;
+                    case StringLengthAttribute stringLength:
+                        ruleInfo.Constraints.Add($"Length: {stringLength.MinimumLength}-{stringLength.MaximumLength}");
+                        break;
                     default:
                         ruleInfo.Constraints.Add(attribute.GetType().Name.Replace("Attribute", ""));
                         break;
                 }
             }
+            if (property.Name == nameof(Flight.DepartureDate))
+                ruleInfo.Constraints.Add("Must be in the future");
+
+            if (property.Name == nameof(Flight.ArrivalDate))
+                ruleInfo.Constraints.Add("Must be after DepartureDate");
+
+            if (property.Name == nameof(Flight.ArrivalAirport))
+                ruleInfo.Constraints.Add("Must differ from DepartureAirport");
+
+            if (property.Name == nameof(Flight.DestinationCountry))
+                ruleInfo.Constraints.Add("Must differ from DepartureCountry");
+            
             rulesInfos.Add(ruleInfo);
         }
         return rulesInfos;

@@ -1,5 +1,6 @@
-using AirportTicketBookingSystem.Modules;
-using AirportTicketBookingSystem.Modules.Filtering_and_Validation_Modules;
+using AirportTicketBookingSystem.Modules.Enums;
+using AirportTicketBookingSystem.Modules.Filtering;
+using AirportTicketBookingSystem.Modules.Models;
 
 namespace AirportTicketBookingSystem.Services;
 
@@ -38,14 +39,20 @@ public class BookingService
     {
         if (passengerId == Guid.Empty)
             throw new ArgumentException("Passenger ID cannot be empty.", nameof(passengerId));
-
+        
+        if (flightId == Guid.Empty)
+            throw new ArgumentException("Flight ID cannot be empty.", nameof(flightId));
+        
+        if (!Enum.IsDefined(flightClass))
+            throw new ArgumentOutOfRangeException(nameof(flightClass), "Invalid flight class.");
+        
         if (!PassengerExists(passengerId))
             throw new KeyNotFoundException("Passenger with this ID doesn't exist.");
 
         Flight flight = _flightService.GetFlightById(flightId) ?? 
                         throw new KeyNotFoundException("Flight with this ID doesn't exist.");
 
-        if (flight.DepartureDate <= DateTime.UtcNow)
+        if (_flightService.HasDeparted(flight))
             throw new InvalidOperationException("Cannot book a flight that has already departed.");
 
         if (_flightService.GetAvailableSeats(flightId) <= 0)
@@ -91,7 +98,7 @@ public class BookingService
     
         Flight flight = _flightService.GetFlightById(booking.FlightId) ?? throw new KeyNotFoundException("Flight not found.");
 
-        if (flight.DepartureDate <= DateTime.UtcNow)
+        if (_flightService.HasDeparted(flight))
             throw new InvalidOperationException("Cannot cancel a booking after the flight has departed.");
         
         booking.Status = BookingStatus.Cancelled;
@@ -102,8 +109,17 @@ public class BookingService
 
     public bool ModifyBooking(Guid bookingId, Guid passengerId,Guid? newFlightId,FlightClass? newFlightClass)
     {
-        if(bookingId == Guid.Empty||passengerId==Guid.Empty) 
-            throw new ArgumentException("Invalid booking or passenger ID");
+        if (bookingId == Guid.Empty)
+            throw new ArgumentException("Booking ID cannot be empty",nameof(bookingId));
+
+        if (passengerId == Guid.Empty)
+            throw new ArgumentException("Passenger ID cannot be empty",nameof(passengerId));
+        
+        if (newFlightId.HasValue && newFlightId.Value == Guid.Empty)
+            throw new ArgumentException("Flight ID cannot be empty.",nameof(newFlightId));
+        
+        if (newFlightClass.HasValue && !Enum.IsDefined(newFlightClass.Value))
+            throw new ArgumentOutOfRangeException(nameof(newFlightClass), "Invalid flight class.");
         
         if(newFlightId==null&&newFlightClass==null)
             throw new ArgumentException("No changes were provided");
@@ -123,7 +139,7 @@ public class BookingService
         Flight originalFlight = _flightService.GetFlightById(booking.FlightId)
                                 ?? throw new KeyNotFoundException("Original flight not found.");
 
-        if (originalFlight.DepartureDate <= DateTime.UtcNow)
+        if (_flightService.HasDeparted(originalFlight))
             throw new InvalidOperationException("Cannot modify a booking after its original flight has departed.");
         
         Guid flightId = newFlightId ?? booking.FlightId;
@@ -135,7 +151,7 @@ public class BookingService
         if (flightId == booking.FlightId && flightClass == booking.Class)
             return false;
 
-        if (flight.DepartureDate <= DateTime.UtcNow)
+        if (_flightService.HasDeparted(flight))
             throw new InvalidOperationException("Cannot modify a booking for a departed flight");
         
         if(flightId!=booking.FlightId&&_flightService.GetAvailableSeats(flightId) <= 0)
@@ -179,7 +195,10 @@ public class BookingService
 
         if (criteria.Class.HasValue && !Enum.IsDefined(criteria.Class.Value))
             throw new ArgumentOutOfRangeException(nameof(criteria.Class), "Invalid flight class");
-
+        
+        if (criteria.Status.HasValue && !Enum.IsDefined(criteria.Status.Value))
+            throw new ArgumentOutOfRangeException(nameof(criteria.Status), "Invalid booking status");
+        
         IEnumerable<Booking> query = _bookingStorage.Load(_bookingPath);
 
         var flights = _flightService.GetAllFlights().ToDictionary(f => f.Id);
@@ -195,7 +214,10 @@ public class BookingService
 
         if (criteria.MaxPrice.HasValue)
             query = query.Where(b => b.TotalPrice <= criteria.MaxPrice.Value);
-
+        
+        if(criteria.Status.HasValue)
+            query = query.Where(b => b.Status == criteria.Status.Value);
+        
         if (!string.IsNullOrWhiteSpace(criteria.DepartureCountry))
         {
             query = query.Where(b => flights.TryGetValue(b.FlightId, out var flight) && 

@@ -5,14 +5,17 @@ namespace AirportTicketBookingSystem.Services;
 
 public class StorageService<T>
 {
-    private readonly JsonSerializerOptions _options = new()
+    private static readonly JsonSerializerOptions Options = new()
     {
         WriteIndented = true,
-        Converters = {new JsonStringEnumConverter()}
+        Converters = { new JsonStringEnumConverter() }
     };
 
     public List<T> Load(string filePath)
     {
+        if (string.IsNullOrWhiteSpace(filePath))
+            throw new ArgumentException("File path cannot be empty.",nameof(filePath));
+        
         if (!File.Exists(filePath))
             return new List<T>();
 
@@ -21,14 +24,17 @@ public class StorageService<T>
         if (string.IsNullOrWhiteSpace(json))
             return new List<T>();
 
-        return JsonSerializer.Deserialize<List<T>>(json,_options) ?? throw new JsonException("Expected a JSON array, but found null.");
+        return JsonSerializer.Deserialize<List<T>>(json,Options) ?? throw new JsonException("Expected a JSON array, but found null.");
     }
 
     public void Save(string filePath,List<T> data)
     {
+        if (string.IsNullOrWhiteSpace(filePath))
+            throw new ArgumentException("File path cannot be empty.",nameof(filePath));
+        
         ArgumentNullException.ThrowIfNull(data);
 
-        string json = JsonSerializer.Serialize(data, _options);
+        string json = JsonSerializer.Serialize(data, Options);
         string? directory = Path.GetDirectoryName(filePath);
 
         if (!string.IsNullOrEmpty(directory))

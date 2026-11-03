@@ -4,9 +4,10 @@ namespace AirportTicketBookingSystem.Modules;
 
 public class Flight
 {
-    public Guid Id { get; set; }
+    public Guid Id { get; set; }=Guid.NewGuid();
     
     [Required]
+    [StringLength(20,MinimumLength = 1)]
     public string FlightNumber { get; set; }=string.Empty;
     
     [Required]

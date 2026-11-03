@@ -1,10 +1,15 @@
-using AirportTicketBookingSystem.Modules;
-using AirportTicketBookingSystem.Modules.Filtering_and_Validation_Modules;
+using AirportTicketBookingSystem.Modules.Enums;
+using AirportTicketBookingSystem.Modules.Filtering;
+using AirportTicketBookingSystem.Modules.Models;
 
 namespace AirportTicketBookingSystem.Services;
 
 public class FlightService
 {
+    private const decimal EconomyMultiplier = 1m;
+    private const decimal BusinessMultiplier = 2m;
+    private const decimal FirstClassMultiplier  = 3m;
+    
     private readonly StorageService<Flight>  _flightStorage;
     private readonly StorageService<Booking>  _bookingStorage;
 
@@ -16,8 +21,14 @@ public class FlightService
     {
         _flightStorage = flightStorage??throw new ArgumentNullException(nameof(flightStorage));
         _bookingStorage = bookingStorage??throw new ArgumentNullException(nameof(bookingStorage));
-        _flightPath = flightPath??throw new ArgumentNullException(nameof(flightPath));
-        _bookingPath = bookingPath??throw new ArgumentNullException(nameof(bookingPath));
+        
+        _flightPath = !string.IsNullOrWhiteSpace(flightPath)
+            ? flightPath
+            : throw new ArgumentException("Flight path cannot be empty.",nameof(flightPath));
+        
+        _bookingPath = !string.IsNullOrWhiteSpace(bookingPath)
+            ? bookingPath
+            : throw new ArgumentException("Booking path cannot be empty.",nameof(bookingPath));
     }
     
     public List<Flight> GetAllFlights()
@@ -27,18 +38,25 @@ public class FlightService
 
     public Flight? GetFlightById(Guid id)
     {
+        if (id == Guid.Empty)
+            throw new ArgumentException("Flight ID cannot be empty.", nameof(id));
         return GetAllFlights().FirstOrDefault(f=>f.Id == id);
     }
-
+    
+    public bool HasDeparted(Flight flight)
+    {
+        return flight.DepartureDate <= DateTime.UtcNow;
+    }
+    
     public decimal CalculateTotalPrice(Flight flight,FlightClass flightClass)
     {
         ArgumentNullException.ThrowIfNull(flight);
         
         return flightClass switch
         {
-            FlightClass.Economy=>flight.BasePrice,
-            FlightClass.Business=>flight.BasePrice*2m,
-            FlightClass.FirstClass=>flight.BasePrice*3m,
+            FlightClass.Economy => flight.BasePrice * EconomyMultiplier,
+            FlightClass.Business => flight.BasePrice *  BusinessMultiplier,
+            FlightClass.FirstClass => flight.BasePrice * FirstClassMultiplier,
             _ => throw new ArgumentOutOfRangeException(nameof(flightClass), "Invalid flight class"),
         };
     }
@@ -53,7 +71,7 @@ public class FlightService
             throw new ArgumentOutOfRangeException(nameof(criteria.Class), "Invalid flight class");
         
         IEnumerable<Flight> query = GetAllFlights();
-        query = query.Where(f => f.DepartureDate > DateTime.UtcNow);
+        query = query.Where(f => !HasDeparted(f));
 
         if (!string.IsNullOrWhiteSpace(criteria.DepartureCountry)) {
             query=query.Where(f=>f.DepartureCountry
@@ -95,6 +113,9 @@ public class FlightService
 
     public int GetAvailableSeats(Guid flightId)
     {
+        if (flightId == Guid.Empty)
+            throw new ArgumentException("Flight ID cannot be empty.", nameof(flightId));
+        
         Flight flight = GetFlightById(flightId)??throw new KeyNotFoundException("Flight not found");
         
         int bookedSeats = _bookingStorage
