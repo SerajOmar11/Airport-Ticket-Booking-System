@@ -2,7 +2,7 @@ using System.Globalization;
 using System.Text;
 using AirportTicketBookingSystem.Modules.Models;
 
-namespace AirportTicketBookingSystem.Services;
+namespace AirportTicketBookingSystem.Services.FlightServices;
 
 public class CsvFlightParser
 {

@@ -2,7 +2,7 @@ using AirportTicketBookingSystem.Modules.Enums;
 using AirportTicketBookingSystem.Modules.Filtering;
 using AirportTicketBookingSystem.Modules.Models;
 
-namespace AirportTicketBookingSystem.Services;
+namespace AirportTicketBookingSystem.Services.FlightServices;
 
 public class FlightService
 {

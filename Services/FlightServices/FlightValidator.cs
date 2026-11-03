@@ -3,7 +3,7 @@ using System.Reflection;
 using AirportTicketBookingSystem.Modules.Models;
 using AirportTicketBookingSystem.Modules.Validation;
 
-namespace AirportTicketBookingSystem.Services;
+namespace AirportTicketBookingSystem.Services.FlightServices;
 
 public class FlightValidator
 {

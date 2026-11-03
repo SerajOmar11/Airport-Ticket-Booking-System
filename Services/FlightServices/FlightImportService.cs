@@ -1,7 +1,6 @@
-using AirportTicketBookingSystem.Modules.Models;
 using AirportTicketBookingSystem.Modules.Validation;
-
-namespace AirportTicketBookingSystem.Services;
+using AirportTicketBookingSystem.Modules.Models;
+namespace AirportTicketBookingSystem.Services.FlightServices;
 
 public class FlightImportService
 {
