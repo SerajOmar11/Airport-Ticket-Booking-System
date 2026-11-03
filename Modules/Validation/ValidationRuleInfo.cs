@@ -1,4 +1,4 @@
-namespace AirportTicketBookingSystem.Modules.Filtering_and_Validation_Modules;
+namespace AirportTicketBookingSystem.Modules.Validation;
 
 public class ValidationRuleInfo
 {

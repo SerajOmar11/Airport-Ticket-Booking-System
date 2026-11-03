@@ -1,4 +1,6 @@
-namespace AirportTicketBookingSystem.Modules.Filtering_and_Validation_Modules;
+using AirportTicketBookingSystem.Modules.Enums;
+
+namespace AirportTicketBookingSystem.Modules.Filtering;
 
 public class FlightSearchCriteria
 {

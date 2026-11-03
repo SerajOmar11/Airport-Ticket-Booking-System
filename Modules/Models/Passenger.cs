@@ -1,18 +1,24 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace AirportTicketBookingSystem.Modules;
+namespace AirportTicketBookingSystem.Modules.Models;
 
 public class Passenger
 {
-    public Guid Id { get; set; }
-    
+    public Guid Id { get; set; } = Guid.NewGuid();
+
     [Required]
-    public string FullName { get; set; }
-    
+    [StringLength(50)]
+    public string FirstName { get; set; } = string.Empty;
+
+    [Required]
+    [StringLength(50)]
+    public string LastName { get; set; } = string.Empty;
+
     [Required]
     [EmailAddress]
-    public string Email { get; set; }
-    
+    public string Email { get; set; } = string.Empty;
+
     [Required]
-    public string PassportNumber { get; set; }
+    [StringLength(20)]
+    public string PassportNumber { get; set; } = string.Empty;
 }

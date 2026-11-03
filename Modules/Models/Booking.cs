@@ -1,4 +1,6 @@
-namespace AirportTicketBookingSystem.Modules;
+using AirportTicketBookingSystem.Modules.Enums;
+
+namespace AirportTicketBookingSystem.Modules.Models;
 
 public class Booking
 {

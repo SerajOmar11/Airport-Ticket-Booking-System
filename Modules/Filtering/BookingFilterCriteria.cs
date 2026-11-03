@@ -1,4 +1,6 @@
-namespace AirportTicketBookingSystem.Modules.Filtering_and_Validation_Modules;
+using AirportTicketBookingSystem.Modules.Enums;
+
+namespace AirportTicketBookingSystem.Modules.Filtering;
 
 public class BookingFilterCriteria
 {
@@ -11,4 +13,5 @@ public class BookingFilterCriteria
     public string? DepartureAirport { get; set; }
     public string? ArrivalAirport { get; set; }
     public FlightClass? Class { get; set; }
+    public BookingStatus? Status { get; set; }
 }
