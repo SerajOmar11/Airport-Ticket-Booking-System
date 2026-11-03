@@ -182,7 +182,7 @@ public class PassengerMenu
         for (int i = 0; i < passengers.Count; i++)
         {
             Passenger passenger = passengers[i];
-            Console.WriteLine($"{i + 1}. {passenger.FirstName} {passenger.LastName}");
+            Console.WriteLine($"{i + 1}. {passenger.Email}");
         }
 
         int choice = ConsoleHelper.ReadInt("Choose passenger: ", 1, passengers.Count);
