@@ -1,6 +1,5 @@
-
 using System.Globalization;
-using AirportTicketBookingSystem.Modules;
+using AirportTicketBookingSystem.Modules.Enums;
 
 namespace AirportTicketBookingSystem.Application;
 
@@ -28,7 +27,7 @@ public static class ConsoleHelper
         return string.IsNullOrWhiteSpace(value) ? null : value;
     }
 
-    public static int ReadInt(string prompt, int min, int max)
+    public static int ReadInt(string prompt,int min,int max)
     {
         while (true)
         {
@@ -54,19 +53,23 @@ public static class ConsoleHelper
         }
     }
 
-    public static decimal? ReadOptionalDecimal(string prompt)
+    public static DateTime ReadDate(string prompt)
     {
         while (true)
         {
-            string? input = ReadOptional(prompt);
-            if (input == null) return null;
+            string input = ReadRequired(prompt);
 
-            if (decimal.TryParse(input, NumberStyles.Number,
-                    CultureInfo.InvariantCulture, out decimal value)
-                && value >= 0)
-                return value;
+            if (DateTime.TryParseExact(
+                    input,
+                    "yyyy-MM-dd",
+                    CultureInfo.InvariantCulture,
+                    DateTimeStyles.None,
+                    out DateTime date))
+            {
+                return date;
+            }
 
-            Console.WriteLine("Enter a non-negative decimal number.");
+            Console.WriteLine("Use yyyy-MM-dd.");
         }
     }
 
@@ -75,19 +78,74 @@ public static class ConsoleHelper
         while (true)
         {
             string? input = ReadOptional(prompt);
-            if (input == null) return null;
+            if (input == null)
+                return null;
 
             if (DateTime.TryParseExact(
-                    input, "yyyy-MM-dd",
+                    input,
+                    "yyyy-MM-dd",
                     CultureInfo.InvariantCulture,
-                    DateTimeStyles.None, out DateTime date))
+                    DateTimeStyles.None,
+                    out DateTime date))
+            {
                 return date;
+            }
 
             Console.WriteLine("Use yyyy-MM-dd.");
         }
     }
 
-    public static FlightClass? ReadFlightClass(bool optional = false)
+    public static decimal ReadDecimal(
+        string prompt,
+        decimal min = 0)
+    {
+        while (true)
+        {
+            string input = ReadRequired(prompt);
+
+            if (decimal.TryParse(
+                    input,
+                    NumberStyles.Number,
+                    CultureInfo.InvariantCulture,
+                    out decimal value) &&
+                value >= min)
+            {
+                return value;
+            }
+
+            Console.WriteLine(
+                $"Enter a number greater than or equal to {min}.");
+        }
+    }
+
+    public static decimal? ReadOptionalDecimal(string prompt)
+    {
+        while (true)
+        {
+            string? input = ReadOptional(prompt);
+
+            if (input == null)
+            {
+                return null;
+            }
+
+            if (decimal.TryParse(
+                    input,
+                    NumberStyles.Number,
+                    CultureInfo.InvariantCulture,
+                    out decimal value) &&
+                value >= 0)
+            {
+                return value;
+            }
+
+            Console.WriteLine(
+                "Enter a non-negative decimal number.");
+        }
+    }
+
+    public static FlightClass? ReadFlightClass(
+        bool optional = false)
     {
         while (true)
         {
@@ -100,24 +158,67 @@ public static class ConsoleHelper
                 : ReadRequired("Class: ");
 
             if (optional && input == null)
+            {
                 return null;
+            }
 
             if (int.TryParse(input, out int number) &&
                 Enum.IsDefined(typeof(FlightClass), number))
+            {
                 return (FlightClass)number;
+            }
 
             Console.WriteLine("Invalid flight class.");
         }
     }
 
+    public static bool Confirm(string prompt)
+    {
+        while (true)
+        {
+            Console.Write($"{prompt} (Y/N): ");
+
+            string? input = Console.ReadLine()
+                ?.Trim()
+                .ToUpperInvariant();
+
+            if (input == "Y")
+            {
+                return true;
+            }
+
+            if (input == "N")
+            {
+                return false;
+            }
+
+            Console.WriteLine("Enter Y or N.");
+        }
+    }
+
     public static void Pause()
     {
-        Console.WriteLine("\nPress Enter to continue...");
+        Console.WriteLine();
+        Console.WriteLine("Press Enter to continue...");
         Console.ReadLine();
     }
 
     public static void ShowError(Exception ex)
     {
-        Console.WriteLine($"\nError: {ex.Message}");
+        Console.ForegroundColor = ConsoleColor.Red;
+
+        Console.WriteLine();
+        Console.WriteLine($"Error: {ex.Message}");
+
+        Console.ResetColor();
+    }
+
+    public static void ShowSuccess(string message)
+    {
+        Console.ForegroundColor = ConsoleColor.Green;
+
+        Console.WriteLine(message);
+
+        Console.ResetColor();
     }
 }
